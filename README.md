@@ -47,6 +47,20 @@ portainer-cli login username password
 portainer-cli login douglas d1234
 ```
 
+### set_apikey command
+
+Identify yourself using an API-Key. Generate your API-Key using the Portainer Web Interface (account -> add access token).
+
+```bash
+portainer-cli set_apikey <your-api-key>
+```
+
+**E.g:**
+
+```bash
+portainer-cli set_apikey ptr_2Igx1JRPcKAKx5Q7k4R9wAYdLQBhJ+S62g+6sh7fA/w=
+```
+
 ### create_stack command
 
 Create a stack.

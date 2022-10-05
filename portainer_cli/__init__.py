@@ -28,6 +28,7 @@ def env_arg_to_dict(s):
 class PortainerCLI(object):
     COMMAND_CONFIGURE = 'configure'
     COMMAND_LOGIN = 'login'
+    COMMAND_APIKEY = 'set_apikey'
     COMMAND_REQUEST = 'request'
     COMMAND_CREATE_STACK = 'create_stack'
     COMMAND_UPDATE_STACK = 'update_stack'
@@ -38,6 +39,7 @@ class PortainerCLI(object):
     COMMANDS = [
         COMMAND_CONFIGURE,
         COMMAND_LOGIN,
+        COMMAND_APIKEY,
         COMMAND_REQUEST,
         COMMAND_CREATE_STACK,
         COMMAND_UPDATE_STACK,
@@ -57,6 +59,7 @@ class PortainerCLI(object):
     _jwt = None
     _proxies = {}
     _swarm_id = None
+    _apikey = None
 
     @property
     def base_url(self):
@@ -76,6 +79,15 @@ class PortainerCLI(object):
     @jwt.setter
     def jwt(self, value):
         self._jwt = value
+        self.persist()
+
+    @property
+    def apikey(self):
+        return self._apikey
+
+    @apikey.setter
+    def apikey(self, value):
+        self._apikey = value
         self.persist()
 
     @property
@@ -119,6 +131,7 @@ class PortainerCLI(object):
         data = {
             'base_url': self.base_url,
             'jwt': self.jwt,
+            'apikey': self.apikey
         }
         logger.info('persisting configuration: {}'.format(data))
         data_file = open(self.data_path, 'w+')
@@ -134,6 +147,7 @@ class PortainerCLI(object):
         logger.info('configuration loaded: {}'.format(data))
         self._base_url = data.get('base_url')
         self._jwt = data.get('jwt')
+        self._apikey = data.get('apikey')
 
     def configure(self, base_url):
         self.base_url = base_url
@@ -151,6 +165,10 @@ class PortainerCLI(object):
         jwt = r.get('jwt')
         logger.info('logged with jwt: {}'.format(jwt))
         self.jwt = jwt
+
+    def set_apikey(self, apikey):
+        logger.info('set api key: {}'.format(apikey))
+        self.apikey = apikey
 
     def get_users(self):
         users_url = 'users'
@@ -498,6 +516,8 @@ class PortainerCLI(object):
             prepped.headers['Content-Length'] = len(prepped.body)
         if self.jwt:
             prepped.headers['Authorization'] = 'Bearer {}'.format(self.jwt)
+        if self.apikey:
+            prepped.headers['X-API-Key'] = self.apikey
         response = session.send(prepped, proxies=self.proxies, verify=False)
         logger.debug('request response: {}'.format(response.content))
         response.raise_for_status()
@@ -526,6 +546,8 @@ class PortainerCLI(object):
             plac.call(self.configure, args)
         elif command == self.COMMAND_LOGIN:
             plac.call(self.login, args)
+        elif command == self.COMMAND_APIKEY:
+            plac.call(self.set_apikey, args)
         elif command == self.COMMAND_CREATE_STACK:
             plac.call(self.create_stack, args)
         elif command == self.COMMAND_UPDATE_STACK:

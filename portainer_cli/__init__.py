@@ -233,7 +233,8 @@ class PortainerCLI(object):
         stack_url = 'stacks'
         return self.request(stack_url, self.METHOD_GET).json()
 
-    def get_stack_by_id(self, stack_id, endpoint_id):
+    def get_stack_by_id(self, stack_id, endpoint_id=None):
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
         stack_url = 'stacks/{}?endpointId={}'.format(
             stack_id,
             endpoint_id,
@@ -243,7 +244,8 @@ class PortainerCLI(object):
             raise Exception('Stack with id={} does not exist'.format(stack_id))
         return stack
 
-    def get_stack_by_name(self, stack_name, endpoint_id, mandatory=False):
+    def get_stack_by_name(self, stack_name, endpoint_id=None, mandatory=False):
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
         result = self.get_stacks()
         if result:
             for stack in result:
@@ -259,7 +261,8 @@ class PortainerCLI(object):
         stack_name=('Stack name', 'option', 'n'),
         endpoint_id=('Endpoint id', 'option', 'e', int)
     )
-    def get_stack_id(self, stack_name, endpoint_id):
+    def get_stack_id(self, stack_name, endpoint_id=None):
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
         stack = self.get_stack_by_name(stack_name, endpoint_id)
         if not stack:
             logger.debug('Stack with name={} does not exist'.format(stack_name))
@@ -297,8 +300,9 @@ class PortainerCLI(object):
             prune=('Prune services', 'flag', 'p'),
             clear_env=('Clear all env vars', 'flag', 'c'),
         )
-    def create_or_update_stack(self, stack_name, endpoint_id, stack_file='', env_file='', prune=False, clear_env=False, *args):
+    def create_or_update_stack(self, stack_name, endpoint_id=None, stack_file='', env_file='', prune=False, clear_env=False, *args):
         logger.debug('create_or_update_stack')
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
         stack_id = self.get_stack_id(stack_name, endpoint_id)
         if stack_id == -1:
             self.create_stack(stack_name, endpoint_id, stack_file, env_file, *args)
@@ -311,13 +315,16 @@ class PortainerCLI(object):
         stack_file=('Environment Variable file', 'option', 'sf'),
         env_file=('Environment Variable file', 'option', 'ef')
     )
-    def create_stack(self, stack_name, endpoint_id, stack_file='', env_file='', *args):
+    def create_stack(self, stack_name, endpoint_id=None, stack_file='', env_file='', *args):
         logger.info('Creating stack name={}'.format(stack_name))
         swarm_url = 'endpoints/{}/docker/swarm'.format(endpoint_id)
         try:
             self.swarm_id = self.request(swarm_url, self.METHOD_GET).json().get('ID')
         except HTTPError:
             logger.warning("Request to get Swarm ID failed, defaulting to compose")
+        
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
+
         stack_url = 'stacks?type={}&method=string&endpointId={}'.format(
             1 if self.swarm_id is not None else 2,
             endpoint_id
@@ -345,6 +352,9 @@ class PortainerCLI(object):
             self.METHOD_POST,
             data,
         )
+
+    def getDefaultEndpoint(self):
+        return self.request('endpoints', self.METHOD_GET).json()[0].get('Id')
 
     def create_or_update_resource_control(self, stack, public, users, teams):
         resource_control = stack['ResourceControl']
@@ -379,7 +389,8 @@ class PortainerCLI(object):
         teams=('Allowed teams (comma separated - restricted ownership_type only)', 'option', 't'),
         clear=('Clear acl (restricted ownership_type only)', 'flag', 'c')
     )
-    def update_stack_acl(self, stack_id, stack_name, endpoint_id, ownership_type, users, teams, clear=False):
+    def update_stack_acl(self, stack_id, stack_name, ownership_type, users, teams, endpoint_id=None, clear=False):
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
         stack = None
         if stack_id:
             stack = self.get_stack_by_id(stack_id, endpoint_id)
@@ -421,9 +432,10 @@ class PortainerCLI(object):
         prune=('Prune services', 'flag', 'p'),
         clear_env=('Clear all env vars', 'flag', 'c'),
     )
-    def update_stack(self, stack_id, endpoint_id, stack_file='', env_file='',
+    def update_stack(self, stack_id, endpoint_id=None, stack_file='', env_file='',
                      prune=False, clear_env=False, *args):
         logger.info('Updating stack id={}'.format(stack_id))
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
         stack_url = 'stacks/{}?endpointId={}'.format(
             stack_id,
             endpoint_id,

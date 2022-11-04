@@ -36,6 +36,8 @@ class PortainerCLI(object):
     COMMAND_CREATE_OR_UPDATE_STACK = 'create_or_update_stack'
     COMMAND_GET_STACK_ID = 'get_stack_id'
     COMMAND_UPDATE_REGISTRY = 'update_registry'
+    COMMAND_DELETE_STACK_BY_NAME = 'delete_stack_by_name'
+
     COMMANDS = [
         COMMAND_CONFIGURE,
         COMMAND_LOGIN,
@@ -46,7 +48,8 @@ class PortainerCLI(object):
         COMMAND_UPDATE_STACK_ACL,
         COMMAND_CREATE_OR_UPDATE_STACK,
         COMMAND_GET_STACK_ID,
-        COMMAND_UPDATE_REGISTRY
+        COMMAND_UPDATE_REGISTRY,
+        COMMAND_DELETE_STACK_BY_NAME
     ]
 
     METHOD_GET = 'GET'
@@ -256,6 +259,19 @@ class PortainerCLI(object):
         else:
             return None
 
+    def delete_stack(self, stack_id, endpoint_id=None, external=False):
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
+        stack_url = 'stacks/{}?endpointId={}&external={}'.format(
+            stack_id,
+            endpoint_id,
+            external
+        )
+        try:
+            self.request(stack_url, self.METHOD_DELETE)
+        except HTTPError:
+            logger.warning('Stack with id={} could not be deleted'.format(stack_id))
+        return 
+
     # Retrieve the stack if. -1 if the stack does not exist
     @plac.annotations(
         stack_name=('Stack name', 'option', 'n'),
@@ -309,6 +325,21 @@ class PortainerCLI(object):
         else:
            self.update_stack(stack_id, endpoint_id, stack_file, env_file, prune, clear_env, *args)
 
+    @plac.annotations(  
+            stack_name=('Stack name', 'option', 'n', str),
+            endpoint_id=('Endpoint id', 'option', 'e', int),
+            external=('External', 'flag', 'ex'),
+        )
+    def delete_stack_by_name(self, stack_name, endpoint_id=None, external=False, *args):
+        logger.debug('delete_stack_by_name')
+        endpoint_id = endpoint_id or self.getDefaultEndpoint()
+        stack_id = self.get_stack_id(stack_name, endpoint_id)
+        if stack_id == -1:
+            logger.warning("Stack not found.")
+        else:
+           self.delete_stack(stack_id, endpoint_id, external, *args)
+
+
     @plac.annotations(
         stack_name=('Stack name', 'option', 'n'),
         endpoint_id=('Endpoint id', 'option', 'e', int),
@@ -352,6 +383,7 @@ class PortainerCLI(object):
             self.METHOD_POST,
             data,
         )
+        
 
     def getDefaultEndpoint(self):
         return self.request('endpoints', self.METHOD_GET).json()[0].get('Id')
@@ -570,6 +602,8 @@ class PortainerCLI(object):
             plac.call(self.create_or_update_stack, args)
         elif command == self.COMMAND_GET_STACK_ID:
             plac.call(self.get_stack_id, args)
+        elif command == self.COMMAND_DELETE_STACK_BY_NAME:
+            plac.call(self.delete_stack_by_name, args)
         elif command == self.COMMAND_UPDATE_REGISTRY:
             plac.call(self.update_registry, args)
         elif command == self.COMMAND_REQUEST:

@@ -562,7 +562,7 @@ class PortainerCLI(object):
             prepped.headers['Authorization'] = 'Bearer {}'.format(self.jwt)
         if self.apikey:
             prepped.headers['X-API-Key'] = self.apikey
-        response = session.send(prepped, proxies=self.proxies, verify=False)
+        response = session.send(prepped, proxies=self.proxies, verify=True)
         logger.debug('request response: {}'.format(response.content))
         response.raise_for_status()
         if printc:

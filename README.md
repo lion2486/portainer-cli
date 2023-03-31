@@ -1,13 +1,25 @@
 # Portainer CLI
-
 Powered by [Ilhasoft's Web Team](http://www.ilhasoft.com.br/en/).
+由Ilhasoft的Web团队提供支持。（已经停止维护）
 
 Portainer CLI is a Python software to use in command line. Use this command line interface to easy communicate with your [Portainer](https://portainer.io/) application, like in a continuous integration and continuous deployment environments.
+Portainer CLI是一个用于命令行的Python软件。在连续集成和连续部署环境中使用该命令行界面，可以轻松与您的Portainer应用程序进行通信。
+由Ilhasoft的Web团队提供支持
 
 ## Install
+## 安装
 
-```
+```bash
 pip install [--user] portainer-cli
+```
+```bash
+git clone https://github.com/6bf3803cb456/portainer-cli.git
+
+rm -rf /usr/local/bin/portainer-cli
+rm -rf /usr/local/lib/python3.9/dist-packages/portainer_cli
+
+mv portainer-cli /usr/local/bin/
+mv portainer_cli/ /usr/local/lib/python3.9/dist-packages/
 ```
 
 ## Usage
@@ -66,13 +78,13 @@ portainer-cli set_apikey ptr_2Igx1JRPcKAKx5Q7k4R9wAYdLQBhJ+S62g+6sh7fA/w=
 Create a stack.
 
 ```bash
-portainer-cli create_stack -n stack_name -e endpoint_id -sf stack_file
+portainer-cli create_stack -n stack_name -sf stack_file
 ```
 
 **E.g:**
 
 ```bash
-portainer-cli create_stack -n stack_name -e 1 stack-test -sf docker-compose.yml
+portainer-cli create_stack -n traefik -sf docker-compose.yml
 ```
 
 #### Flags

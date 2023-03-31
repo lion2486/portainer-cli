@@ -310,20 +310,19 @@ class PortainerCLI(object):
 
     @plac.annotations(
             stack_name=('Stack name', 'option', 'n', str),
-            endpoint_id=('Endpoint id', 'option', 'e', int),
+#            endpoint_id=('Endpoint id', 'option', 'e', int),
             stack_file=('Stack file', 'option', 'sf'),
             env_file=('Environment Variable file', 'option', 'ef'),
             prune=('Prune services', 'flag', 'p'),
             clear_env=('Clear all env vars', 'flag', 'c'),
         )
-    def create_or_update_stack(self, stack_name, endpoint_id=None, stack_file='', env_file='', prune=False, clear_env=False, *args):
+    def create_or_update_stack(self, stack_name, stack_file='', env_file='', prune=False, clear_env=False, *args):
         logger.debug('create_or_update_stack')
-        endpoint_id = endpoint_id or self.getDefaultEndpoint()
-        stack_id = self.get_stack_id(stack_name, endpoint_id)
+        stack_id = self.get_stack_id(stack_name)
         if stack_id == -1:
-            self.create_stack(stack_name, endpoint_id, stack_file, env_file, *args)
+            self.create_stack(stack_name, stack_file, env_file, *args)
         else:
-           self.update_stack(stack_id, endpoint_id, stack_file, env_file, prune, clear_env, *args)
+            self.update_stack(stack_id, stack_file, env_file, prune, clear_env, *args)
 
     @plac.annotations(  
             stack_name=('Stack name', 'option', 'n', str),
@@ -342,40 +341,31 @@ class PortainerCLI(object):
 
     @plac.annotations(
         stack_name=('Stack name', 'option', 'n'),
-        endpoint_id=('Endpoint id', 'option', 'e', int),
+#        endpoint_id=('Endpoint id', 'option', 'e', int),
         stack_file=('Environment Variable file', 'option', 'sf'),
         env_file=('Environment Variable file', 'option', 'ef')
     )
     def create_stack(self, stack_name, endpoint_id=None, stack_file='', env_file='', *args):
         logger.info('Creating stack name={}'.format(stack_name))
-        swarm_url = 'endpoints/{}/docker/swarm'.format(endpoint_id)
-        try:
-            self.swarm_id = self.request(swarm_url, self.METHOD_GET).json().get('ID')
-        except HTTPError:
-            logger.warning("Request to get Swarm ID failed, defaulting to compose")
-        
         endpoint_id = endpoint_id or self.getDefaultEndpoint()
 
         stack_url = 'stacks?type={}&method=string&endpointId={}'.format(
-            1 if self.swarm_id is not None else 2,
+            2,
             endpoint_id
         )
-        stack_file_content = open(stack_file).read()
+
+        stack_file_content = open(stack_file).read() 
 
         env = self.extract_env(env_file, *args)
-        final_env = list(
-            map(
-                lambda x: {'name': x[0], 'value': x[1]},
-                env.items()
-            ),
-        )
+        final_env = [
+            {'name': k, 'value': v} for k, v in env.items()
+        ]
+
         data = {
             'StackFileContent': stack_file_content,
             'Name': stack_name,
             'Env': final_env if len(final_env) > 0 else []
         }
-        if self.swarm_id is not None:
-            data['SwarmID'] = self.swarm_id
 
         logger.debug('create stack data: {}'.format(data))
         self.request(
@@ -383,7 +373,6 @@ class PortainerCLI(object):
             self.METHOD_POST,
             data,
         )
-        
 
     def getDefaultEndpoint(self):
         return self.request('endpoints', self.METHOD_GET).json()[0].get('Id')
